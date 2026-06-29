@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend-deployment
+  namespace: hotel-system
+spec:
+  replicas: 5
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+      - name: hotel-backend
+        image: hotel-backend:local
+        env:
+        - name: MONGO_URL
+          valueFrom:
+            configMapKeyRef:
+              name: app-config
+              key: mongo-url
+        - name: MONGO_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: mongo-secrets
+              key: mongo-password
+        ports:
+        - containerPort: 3000
