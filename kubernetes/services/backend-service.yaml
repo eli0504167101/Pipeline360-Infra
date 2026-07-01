@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service # זה השם שה-Frontend מחפש
+  namespace: hotel-system
+spec:
+  selector:
+    app: backend # וודא שזה תואם ל-label של הפודים של ה-Backend שלך
+  ports:
+    - protocol: TCP
+      port: 8080 # הפורט שה-Service חושף
+      targetPort: 8080 # הפורט שהקונטיינר של ה-Backend מאזין לו
