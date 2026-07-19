@@ -8,5 +8,5 @@ spec:
     app: backend # וודא שזה תואם ל-label של הפודים של ה-Backend שלך
   ports:
     - protocol: TCP
-      port: 8080 # הפורט שה-Service חושף
-      targetPort: 8080 # הפורט שהקונטיינר של ה-Backend מאזין לו
+      port: 3000 # הפורט שה-Service חושף
+      targetPort: 3000 # הפורט שהקונטיינר של ה-Backend מאזין לו

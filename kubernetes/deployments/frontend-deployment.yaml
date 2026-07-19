@@ -15,11 +15,13 @@ spec:
     spec:
       containers:
       - name: hotel-frontend
-        image: eli0504167101/hotel-frontend:41
+        image: eli0504167101/hotel-frontend:v2
+        env:
+        - name: BACKEND_URL
+          value: "backend-service.hotel-system.svc.cluster.local:8080"
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
-        # כאן הפרובים צריכים להיות, בתוך ה-container
         readinessProbe:
           httpGet:
             path: /index.html

@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: app-config
+  namespace: hotel-system
 data:
-  # כתובת ה-Service הפנימית של ה-MongoDB בתוך ה-Cluster
-  mongo-url: "mongodb://mongo:27017"
-  environment: "production"
+  environment: production
+  mongo-url: "mongodb://mongo-0.mongo-headless.hotel-system.svc.cluster.local:27017,mongo-1.mongo-headless.hotel-system.svc.cluster.local:27017,mongo-2.mongo-headless.hotel-system.svc.cluster.local:27017/Pipeline360_PROD?replicaSet=rs0"

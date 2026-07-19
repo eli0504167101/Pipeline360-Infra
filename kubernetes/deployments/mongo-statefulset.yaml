@@ -2,41 +2,49 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: mongo
+  namespace: hotel-system
+
 spec:
-  serviceName: "mongo"
+  serviceName: mongo-headless
   replicas: 3
+
   selector:
     matchLabels:
       app: mongo
+
   template:
     metadata:
       labels:
         app: mongo
+
     spec:
       containers:
-      - name: mongo
-        image: mongo:latest
-        ports:
-        - containerPort: 27017
-        volumeMounts:
-        - name: mongo-storage
-          mountPath: /data/db
+        - name: mongo
+          image: mongo:7
+          imagePullPolicy: IfNotPresent
+
+          command:
+            - mongod
+
+          args:
+            - --replSet
+            - rs0
+            - --bind_ip_all
+
+          ports:
+            - name: mongodb
+              containerPort: 27017
+
+          volumeMounts:
+            - name: mongo-storage
+              mountPath: /data/db
+
   volumeClaimTemplates:
-  - metadata:
-      name: mongo-storage
-    spec:
-      accessModes: [ "ReadWriteOnce" ]
-      resources:
-        requests:
-          storage: 1Gi
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: mongo
-spec:
-  ports:
-  - port: 27017
-  clusterIP: None # Headless Service
-  selector:
-    app: mongo
+    - metadata:
+        name: mongo-storage
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        resources:
+          requests:
+            storage: 1Gi

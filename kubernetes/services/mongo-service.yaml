@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo # זה השם שה-Backend מחפש!
+  namespace: hotel-system
+spec:
+  selector:
+    app: mongodb # וודא שזה תואם ל-label של ה-Pod של המונגו
+  ports:
+    - protocol: TCP
+      port: 27017
+      targetPort: 27017

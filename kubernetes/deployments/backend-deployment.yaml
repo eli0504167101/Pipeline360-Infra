@@ -27,17 +27,19 @@ spec:
             secretKeyRef:
               name: mongo-secrets
               key: mongo-password
+        - name: BACKEND_URL # תוסיף את זה
+          value: "localhost:8080" # בתוך ה-Backend עצמו הוא יכול לפנות ל-localhost
         ports:
-        - containerPort: 8080
+        - containerPort: 3000
         livenessProbe:
           httpGet:
-            path: /health
-            port: 8080
+            path: /
+            port: 3000
           initialDelaySeconds: 15
           periodSeconds: 20
         readinessProbe:
           httpGet:
-            path: /ready
-            port: 8080
-          initialDelaySeconds: 5
+            path: / 
+            port: 3000
+          initialDelaySeconds: 30
           periodSeconds: 10
