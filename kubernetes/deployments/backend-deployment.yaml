@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: hotel-backend
-        image: eli0504167101/hotel-backend:76
+        image: eli0504167101/hotel-backend:77
         env:
         - name: MONGO_URL
           valueFrom:

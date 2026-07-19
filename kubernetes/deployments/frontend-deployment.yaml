@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
       - name: hotel-frontend
-        image: eli0504167101/hotel-frontend:76
+        image: eli0504167101/hotel-frontend:77
         imagePullPolicy: IfNotPresent
         ports:
         - containerPort: 80
