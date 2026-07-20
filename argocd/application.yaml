@@ -1,5 +1,6 @@
 apiVersion: argoproj.io/v1alpha1
 kind: Application
+
 metadata:
   name: pipeline360
   namespace: argocd
@@ -11,6 +12,8 @@ spec:
     repoURL: https://github.com/eli0504167101/Pipeline360.git
     targetRevision: main
     path: infra-repo/kubernetes
+    directory:
+      recurse: true
 
   destination:
     server: https://kubernetes.default.svc
