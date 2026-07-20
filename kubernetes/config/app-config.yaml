@@ -4,5 +4,5 @@ metadata:
   name: app-config
 data:
   # כתובת ה-Service הפנימית של ה-MongoDB בתוך ה-Cluster
-  mongo-url: "mongodb://mongo:27017"
+  mongo-url: mongodb://mongo:27017/Pipeline360_PROD
   environment: "production"
