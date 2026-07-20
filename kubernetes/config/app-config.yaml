@@ -5,4 +5,4 @@ metadata:
   namespace: hotel-system
 data:
   environment: production
-  mongo-url: "mongodb://mongo-0.mongo-headless.hotel-system.svc.cluster.local:27017,mongo-1.mongo-headless.hotel-system.svc.cluster.local:27017,mongo-2.mongo-headless.hotel-system.svc.cluster.local:27017/Pipeline360_PROD?replicaSet=rs0"
+  mongo-url: mongodb://mongo:27017/Pipeline360_PROD
