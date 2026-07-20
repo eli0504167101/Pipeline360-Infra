@@ -3,34 +3,42 @@ kind: Deployment
 metadata:
   name: frontend-deployment
   namespace: hotel-system
+
 spec:
   replicas: 5
+
   selector:
     matchLabels:
       app: frontend
+
   template:
     metadata:
       labels:
         app: frontend
+
     spec:
       containers:
-      - name: hotel-frontend
-        image: eli0504167101/hotel-frontend:v2
-        env:
-        - name: BACKEND_URL
-          value: "backend-service.hotel-system.svc.cluster.local:8080"
-        imagePullPolicy: IfNotPresent
-        ports:
-        - containerPort: 80
-        readinessProbe:
-          httpGet:
-            path: /index.html
-            port: 80
-          initialDelaySeconds: 5
-          periodSeconds: 5
-        livenessProbe:
-          httpGet:
-            path: /index.html
-            port: 80
-          initialDelaySeconds: 15
-          periodSeconds: 20
+        - name: hotel-frontend
+          image: eli0504167101/hotel-frontend:v2
+          imagePullPolicy: IfNotPresent
+
+          env:
+            - name: BACKEND_URL
+              value: "backend-service.hotel-system.svc.cluster.local:3000"
+
+          ports:
+            - containerPort: 80
+
+          readinessProbe:
+            httpGet:
+              path: /index.html
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+
+          livenessProbe:
+            httpGet:
+              path: /index.html
+              port: 80
+            initialDelaySeconds: 15
+            periodSeconds: 20
