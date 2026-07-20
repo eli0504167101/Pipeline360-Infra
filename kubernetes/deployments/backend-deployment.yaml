@@ -3,33 +3,38 @@ kind: Deployment
 metadata:
   name: backend-deployment
   namespace: hotel-system
+
 spec:
   replicas: 5
+
   selector:
     matchLabels:
       app: backend
+
   template:
     metadata:
       labels:
         app: backend
+
     spec:
       containers:
-      - name: hotel-backend
-        image: eli0504167101/hotel-backend:78
+        - name: hotel-backend
+          image: eli0504167101/hotel-backend:78
+          imagePullPolicy: IfNotPresent
 
-        ports:
-          - containerPort: 3000
+          ports:
+            - containerPort: 3000
 
-    readinessProbe:
-      httpGet:
-        path: /ready
-        port: 3000
-      initialDelaySeconds: 5
-      periodSeconds: 5
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
 
-    livenessProbe:
-      httpGet:
-        path: /health
-        port: 3000
-      initialDelaySeconds: 15
-      periodSeconds: 20 
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 20
