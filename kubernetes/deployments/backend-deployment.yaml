@@ -16,28 +16,20 @@ spec:
       containers:
       - name: hotel-backend
         image: eli0504167101/hotel-backend:78
-        env:
-        - name: MONGO_URL
-          valueFrom:
-            configMapKeyRef:
-              name: app-config
-              key: mongo-url
-        - name: MONGO_PASSWORD
-          valueFrom:
-            secretKeyRef:
-              name: mongo-secrets
-              key: mongo-password
+
         ports:
-        - containerPort: 8080
-        livenessProbe:
-          httpGet:
-            path: /health
-            port: 8080
-          initialDelaySeconds: 15
-          periodSeconds: 20
-        readinessProbe:
-          httpGet:
-            path: /ready
-            port: 8080
-          initialDelaySeconds: 5
-          periodSeconds: 10
+          - containerPort: 3000
+
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 3000
+      initialDelaySeconds: 5
+      periodSeconds: 5
+
+    livenessProbe:
+      httpGet:
+        path: /health
+        port: 3000
+      initialDelaySeconds: 15
+      periodSeconds: 20 
