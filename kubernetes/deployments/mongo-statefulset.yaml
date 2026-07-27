@@ -6,28 +6,45 @@ metadata:
 spec:
   serviceName: mongo-headless
   replicas: 3
+
   selector:
     matchLabels:
       app: mongo
+
   template:
     metadata:
       labels:
         app: mongo
+
     spec:
       containers:
         - name: mongo
           image: mongo:7.0
+
+          command:
+            - mongod
+
+          args:
+            - --replSet
+            - rs0
+            - --bind_ip_all
+
           ports:
-            - containerPort: 27017
+            - name: mongo
+              containerPort: 27017
+
           volumeMounts:
             - name: mongo-storage
               mountPath: /data/db
+
   volumeClaimTemplates:
     - metadata:
         name: mongo-storage
+
       spec:
         accessModes:
           - ReadWriteOnce
+
         resources:
           requests:
             storage: 1Gi
@@ -38,12 +55,16 @@ kind: Service
 metadata:
   name: mongo-headless
   namespace: hotel-system
+
 spec:
   clusterIP: None
+
   selector:
     app: mongo
+
   ports:
-    - port: 27017
+    - name: mongo
+      port: 27017
       targetPort: 27017
 
 ---
@@ -52,10 +73,14 @@ kind: Service
 metadata:
   name: mongo
   namespace: hotel-system
+
 spec:
   type: ClusterIP
+
   selector:
     app: mongo
+
   ports:
-    - port: 27017
+    - name: mongo
+      port: 27017
       targetPort: 27017
