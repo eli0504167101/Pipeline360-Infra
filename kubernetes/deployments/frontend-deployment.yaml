@@ -19,8 +19,8 @@ spec:
     spec:
       containers:
         - name: hotel-frontend
-          image: eli0504167101/hotel-frontend:v2
-          imagePullPolicy: IfNotPresent
+          image: eli0504167101/hotel-frontend:dev-1
+          imagePullPolicy: Always
 
           env:
             - name: BACKEND_URL
