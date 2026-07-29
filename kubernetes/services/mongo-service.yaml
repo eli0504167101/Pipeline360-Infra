@@ -5,7 +5,7 @@ metadata:
   namespace: hotel-system
 spec:
   selector:
-    app: mongodb # וודא שזה תואם ל-label של ה-Pod של המונגו
+    app: mongo # וודא שזה תואם ל-label של ה-Pod של המונגו
   ports:
     - protocol: TCP
       port: 27017
