@@ -15,7 +15,7 @@ spec:
     spec:
       containers:
         - name: hotel-backend
-          image: eli0504167101/hotel-backend:91
+          image: eli0504167101/hotel-backend:92
           imagePullPolicy: IfNotPresent
           env:
             - name: MONGO_URL
