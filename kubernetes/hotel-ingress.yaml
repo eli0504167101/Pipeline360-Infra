@@ -24,3 +24,14 @@ spec:
                 name: frontend-service
                 port:
                   number: 80
+
+    - host: mongo.hotel.local
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mongo-express-service
+                port:
+                  number: 8081
