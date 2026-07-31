@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: hotel-backend
-          image: eli0504167101/hotel-backend:96
+          image: eli0504167101/hotel-backend:97
           imagePullPolicy: IfNotPresent
 
           env:
