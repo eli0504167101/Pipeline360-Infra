@@ -3,13 +3,12 @@ kind: Service
 metadata:
   name: backend-service
   namespace: hotel-system
-
 spec:
   selector:
     app: backend
-
   ports:
-    - port: 8080
+    - name: http
+      protocol: TCP
+      port: 3000
       targetPort: 3000
-
   type: ClusterIP

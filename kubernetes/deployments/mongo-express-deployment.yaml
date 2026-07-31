@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongo-express
+  namespace: hotel-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mongo-express
+  template:
+    metadata:
+      labels:
+        app: mongo-express
+    spec:
+      containers:
+        - name: mongo-express
+          image: mongo-express:latest
+          ports:
+            - containerPort: 8081
+          env:
+            - name: ME_CONFIG_MONGODB_URL
+              value: "mongodb://mongo-0.mongo-headless.hotel-system.svc.cluster.local:27017,mongo-1.mongo-headless.hotel-system.svc.cluster.local:27017,mongo-2.mongo-headless.hotel-system.svc.cluster.local:27017/?replicaSet=rs0&readPreference=primary"
+
+            - name: ME_CONFIG_BASICAUTH
+              value: "false"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mongo-express-service
+  namespace: hotel-system
+spec:
+  selector:
+    app: mongo-express
+  ports:
+    - port: 8081
+      targetPort: 8081
+  type: ClusterIP

@@ -24,7 +24,7 @@ spec:
 
           env:
             - name: BACKEND_URL
-              value: "backend-service.hotel-system.svc.cluster.local:8080"
+              value: "backend-service.hotel-system.svc.cluster.local:3000"
 
           ports:
             - containerPort: 80

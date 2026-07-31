@@ -3,37 +3,57 @@ kind: Deployment
 metadata:
   name: backend-deployment
   namespace: hotel-system
+
 spec:
   replicas: 5
+
   selector:
     matchLabels:
       app: backend
+
   template:
     metadata:
       labels:
         app: backend
+
     spec:
       containers:
         - name: hotel-backend
           image: eli0504167101/hotel-backend:95
           imagePullPolicy: IfNotPresent
+
           env:
             - name: MONGO_URL
               valueFrom:
                 configMapKeyRef:
                   name: app-config
                   key: mongo-url
+
+            - name: MONGO_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongo-secrets
+                  key: mongo-password
+
           ports:
-            - containerPort: 3000
-          readinessProbe:
-            httpGet:
-              path: /ready
-              port: 3000
-            initialDelaySeconds: 5
-            periodSeconds: 5
+            - name: http
+              containerPort: 3000
+              protocol: TCP
+
           livenessProbe:
             httpGet:
               path: /health
               port: 3000
-            initialDelaySeconds: 15
+            initialDelaySeconds: 20
             periodSeconds: 20
+            timeoutSeconds: 3
+            failureThreshold: 3
+
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3

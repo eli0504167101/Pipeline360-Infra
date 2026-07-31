@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: app-config
+  namespace: hotel-system
 data:
-  # כתובת ה-Service הפנימית של ה-MongoDB בתוך ה-Cluster
+  environment: production
   mongo-url: mongodb://mongo:27017/Pipeline360_PROD
-  environment: "production"
