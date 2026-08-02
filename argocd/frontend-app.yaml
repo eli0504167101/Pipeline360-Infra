@@ -17,5 +17,8 @@ spec:
     namespace: hotel-system
 
   syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
     syncOptions:
       - CreateNamespace=true
