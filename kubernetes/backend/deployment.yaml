@@ -29,12 +29,6 @@ spec:
                   name: app-config
                   key: mongo-url
 
-            - name: MONGO_PASSWORD
-              valueFrom:
-                secretKeyRef:
-                  name: mongo-secrets
-                  key: mongo-password
-
           ports:
             - name: http
               containerPort: 3000

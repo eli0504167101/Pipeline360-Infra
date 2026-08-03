@@ -121,7 +121,9 @@ The Deployment uses:
 - `/health` for liveness
 - `/ready` for readiness
 - `MONGO_URL` from the `app-config` ConfigMap
-- `MONGO_PASSWORD` from the `mongo-secrets` Secret
+- `MONGO_URL` from the `app-config` ConfigMap
+- Mongo Express Basic Authentication credentials from the
+  `mongo-express-auth` Secret
 
 Verify:
 
@@ -399,29 +401,43 @@ Template:
 infra-repo/kubernetes/secrets/db-secrets.yaml.template
 ```
 
-Live Secret expected by the Backend Deployment:
+Live Secret used by Mongo Express:
 
 ```text
-mongo-secrets
+mongo-express-auth
 ```
 
-Expected key:
+Expected keys:
 
 ```text
-mongo-password
+username
+password
 ```
+
+The Secret protects access to the Mongo Express web interface through Basic
+Authentication.
+
+MongoDB internal database authentication is not enabled in the current local
+Kind environment. The Backend connects using `MONGO_URL` from the `app-config`
+ConfigMap.
 
 Real credentials must not be committed to Git.
 
-Verify that the Secret exists:
+Verify that the Secret exists without displaying its values:
 
 ```bash
-kubectl get secret mongo-secrets -n hotel-system
+kubectl get secret mongo-express-auth -n hotel-system
+```
+
+Verify the expected key names:
+
+```bash
+kubectl get secret mongo-express-auth \
+  -n hotel-system \
+  -o go-template='{{range $key, $value := .data}}{{printf "%s\n" $key}}{{end}}'
 ```
 
 Do not print, decode, or commit real secret values.
-
----
 
 ## NGINX Ingress
 
