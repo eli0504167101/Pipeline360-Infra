@@ -18,6 +18,15 @@ spec:
           image: mongo-express:latest
           ports:
             - containerPort: 8081
+
+          resources:
+            requests:
+              cpu: 25m
+              memory: 64Mi
+            limits:
+              cpu: 150m
+              memory: 192Mi
+              
           env:
             - name: ME_CONFIG_MONGODB_URL
               value: "mongodb://mongo-0.mongo-headless.hotel-system.svc.cluster.local:27017,mongo-1.mongo-headless.hotel-system.svc.cluster.local:27017,mongo-2.mongo-headless.hotel-system.svc.cluster.local:27017/?replicaSet=rs0&readPreference=primary"
