@@ -19,7 +19,7 @@ spec:
     spec:
       containers:
         - name: hotel-frontend
-          image: eli0504167101/hotel-frontend:128
+          image: eli0504167101/hotel-frontend:130
           imagePullPolicy: IfNotPresent
 
           resources:
