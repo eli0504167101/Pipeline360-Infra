@@ -8,9 +8,9 @@ spec:
   project: default
 
   source:
-    repoURL: https://github.com/eli0504167101/Pipeline360.git
+    repoURL: https://github.com/eli0504167101/Pipeline360-Infra.git
     targetRevision: main
-    path: infra-repo/kubernetes/platform
+    path: kubernetes/platform
 
   destination:
     server: https://kubernetes.default.svc
