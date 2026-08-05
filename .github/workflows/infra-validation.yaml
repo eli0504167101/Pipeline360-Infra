@@ -1,0 +1,238 @@
+name: Infrastructure Validation
+
+on:
+  push:
+    branches:
+      - dev
+    paths:
+      - "kubernetes/**"
+      - "argocd/**"
+      - ".github/workflows/infra-validation.yaml"
+
+  pull_request:
+    branches:
+      - main
+    paths:
+      - "kubernetes/**"
+      - "argocd/**"
+      - ".github/workflows/infra-validation.yaml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate Kubernetes and Argo CD manifests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout infrastructure repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install YAML parser
+        run: python -m pip install --disable-pip-version-check PyYAML==6.0.2
+
+      - name: Validate YAML syntax
+        run: |
+          set -euo pipefail
+
+          python <<'PY'
+          from pathlib import Path
+          import sys
+          import yaml
+
+          roots = (Path("kubernetes"), Path("argocd"))
+          files = sorted(
+              path
+              for root in roots
+              for path in root.rglob("*")
+              if path.is_file() and path.suffix in {".yaml", ".yml"}
+          )
+
+          if not files:
+              raise SystemExit("No YAML files were found.")
+
+          errors = []
+
+          for path in files:
+              try:
+                  with path.open("r", encoding="utf-8") as stream:
+                      documents = list(yaml.safe_load_all(stream))
+
+                  non_empty_documents = [
+                      document for document in documents if document is not None
+                  ]
+
+                  if not non_empty_documents:
+                      errors.append(f"{path}: file contains no YAML documents")
+                      continue
+
+                  for index, document in enumerate(non_empty_documents, start=1):
+                      if not isinstance(document, dict):
+                          errors.append(
+                              f"{path} document {index}: expected a YAML mapping"
+                          )
+                          continue
+
+                      for required_key in ("apiVersion", "kind", "metadata"):
+                          if required_key not in document:
+                              errors.append(
+                                  f"{path} document {index}: "
+                                  f"missing required key '{required_key}'"
+                              )
+
+                      metadata = document.get("metadata")
+                      if isinstance(metadata, dict) and not metadata.get("name"):
+                          errors.append(
+                              f"{path} document {index}: metadata.name is missing"
+                          )
+
+                  print(f"Valid YAML: {path}")
+
+              except Exception as error:
+                  errors.append(f"{path}: {error}")
+
+          if errors:
+              print("\nYAML validation failed:", file=sys.stderr)
+              for error in errors:
+                  print(f"- {error}", file=sys.stderr)
+              raise SystemExit(1)
+
+          print(f"\nValidated {len(files)} YAML files successfully.")
+          PY
+
+      - name: Install kubeconform
+        run: |
+          set -euo pipefail
+
+          KUBECONFORM_VERSION="0.6.7"
+
+          curl -fsSL \
+            "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            -o /tmp/kubeconform.tar.gz
+
+          tar -xzf /tmp/kubeconform.tar.gz \
+            -C /tmp \
+            kubeconform
+
+          sudo install \
+            -m 0755 \
+            /tmp/kubeconform \
+            /usr/local/bin/kubeconform
+
+          kubeconform -v
+
+      - name: Validate Kubernetes manifests with kubeconform
+        run: |
+          set -euo pipefail
+
+          kubeconform \
+            -strict \
+            -summary \
+            -kubernetes-version "1.29.0" \
+            -ignore-missing-schemas \
+            kubernetes/
+
+
+
+      - name: Validate required repository files
+        run: |
+          set -euo pipefail
+
+          required_files=(
+            "argocd/backend-app.yaml"
+            "argocd/frontend-app.yaml"
+            "argocd/platform-app.yaml"
+            "argocd/crds/applicationsets-crd-v3.4.5.yaml"
+            "kubernetes/backend/deployment.yaml"
+            "kubernetes/backend/service.yaml"
+            "kubernetes/frontend/deployment.yaml"
+            "kubernetes/frontend/service.yaml"
+            "kubernetes/platform/namespace.yaml"
+            "kubernetes/platform/app-config.yaml"
+            "kubernetes/platform/mongo-statefulset.yaml"
+            "kubernetes/platform/mongo-express.yaml"
+            "kubernetes/platform/hotel-ingress.yaml"
+          )
+
+          for file in "${required_files[@]}"; do
+            if [ ! -f "${file}" ]; then
+              echo "Required infrastructure file is missing: ${file}"
+              exit 1
+            fi
+
+            echo "Found: ${file}"
+          done
+
+      - name: Reject legacy repository references
+        run: |
+          set -euo pipefail
+
+          if grep -RInE \
+            'github\.com/eli0504167101/Pipeline360\.git|path:[[:space:]]+infra-repo/' \
+            argocd \
+            --include="*.yaml" \
+            --include="*.yml"; then
+            echo "Legacy monorepo reference detected in Argo CD manifests."
+            exit 1
+          fi
+
+          echo "No legacy Argo CD repository references were found."
+
+      - name: Validate replica requirements
+        run: |
+          set -euo pipefail
+
+          python <<'PY'
+          from pathlib import Path
+          import yaml
+
+          expected_replicas = {
+              Path("kubernetes/frontend/deployment.yaml"): 5,
+              Path("kubernetes/backend/deployment.yaml"): 5,
+              Path("kubernetes/platform/mongo-statefulset.yaml"): 3,
+          }
+
+          for path, expected in expected_replicas.items():
+              with path.open("r", encoding="utf-8") as stream:
+                  manifest = yaml.safe_load(stream)
+
+              actual = manifest.get("spec", {}).get("replicas")
+
+              if actual != expected:
+                  raise SystemExit(
+                      f"{path}: expected {expected} replicas, found {actual}"
+                  )
+
+              print(f"Replica requirement passed: {path} = {actual}")
+          PY
+
+      - name: Reject latest image tags
+        run: |
+          set -euo pipefail
+
+          if grep -RInE \
+            'image:[[:space:]]+[^[:space:]]+:latest([[:space:]]|$)' \
+            kubernetes \
+            --include="*.yaml" \
+            --include="*.yml"; then
+            echo "Kubernetes manifests must use versioned image tags."
+            exit 1
+          fi
+
+          echo "All Kubernetes application images use versioned tags."
+
+      - name: Show validated images
+        run: |
+          set -euo pipefail
+
+          echo "Backend image:"
+          grep -n "image:" kubernetes/backend/deployment.yaml
+
+          echo "Frontend image:"
+          grep -n "image:" kubernetes/frontend/deployment.yaml
