@@ -106,38 +106,39 @@ jobs:
           print(f"\nValidated {len(files)} YAML files successfully.")
           PY
 
-      - name: Set up kubectl
-        uses: azure/setup-kubectl@v4
-        with:
-          version: "v1.29.2"
-
-      - name: Run Kubernetes client dry-run
+      - name: Install kubeconform
         run: |
           set -euo pipefail
 
-          mapfile -d '' manifest_files < <(
-            find kubernetes \
-              -type f \
-              \( -name "*.yaml" -o -name "*.yml" \) \
-              -print0
-          )
+          KUBECONFORM_VERSION="0.6.7"
 
-          if [ "${#manifest_files[@]}" -eq 0 ]; then
-            echo "No Kubernetes manifests were found."
-            exit 1
-          fi
+          curl -fsSL \
+            "https://github.com/yannh/kubeconform/releases/download/v${KUBECONFORM_VERSION}/kubeconform-linux-amd64.tar.gz" \
+            -o /tmp/kubeconform.tar.gz
 
-          for manifest in "${manifest_files[@]}"; do
-            echo "Validating Kubernetes manifest: ${manifest}"
+          tar -xzf /tmp/kubeconform.tar.gz \
+            -C /tmp \
+            kubeconform
 
-            kubectl apply \
-              --dry-run=client \
-              --validate=false \
-              -f "${manifest}" \
-              >/dev/null
-          done
+          sudo install \
+            -m 0755 \
+            /tmp/kubeconform \
+            /usr/local/bin/kubeconform
 
-          echo "Kubernetes client dry-run completed successfully."
+          kubeconform -v
+
+      - name: Validate Kubernetes manifests with kubeconform
+        run: |
+          set -euo pipefail
+
+          kubeconform \
+            -strict \
+            -summary \
+            -kubernetes-version "1.29.0" \
+            -ignore-missing-schemas \
+            kubernetes/
+
+
 
       - name: Validate required repository files
         run: |
