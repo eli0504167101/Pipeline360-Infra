@@ -32,13 +32,13 @@ The infrastructure follows GitOps principles:
 ## Directory Structure
 
 ```text
-infra-repo/
+Pipeline360-Infra/
 ├── argocd/
-│   ├── application.yaml
 │   ├── backend-app.yaml
 │   ├── frontend-app.yaml
-│   └── platform-app.yaml
-│
+│   ├── platform-app.yaml
+│   └── crds/
+│       └── applicationsets-crd-v3.4.5.yaml
 └── kubernetes/
     ├── backend/
     │   ├── deployment.yaml
@@ -64,8 +64,6 @@ infra-repo/
         └── db-secrets.yaml.template
 ```
 
-> `infra-repo/argocd/application.yaml` is the previous single-Application definition.  
-> The active architecture uses the three separate Argo CD Applications described below.
 
 ---
 
