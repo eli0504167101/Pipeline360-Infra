@@ -1,731 +1,1320 @@
 # Pipeline360 Infrastructure
 
-Infrastructure, Kubernetes and GitOps repository for the Pipeline360 hotel reservation platform.
+## Overview
 
-Pipeline360 is implemented across three independent Git repositories:
+Pipeline360 is a cloud-native hotel reservation platform designed to demonstrate a complete modern DevOps workflow.
 
-| Repository | Responsibility |
-|---|---|
-| [Pipeline360-Frontend](https://github.com/eli0504167101/Pipeline360-Frontend) | Browser application, NGINX container and frontend CI |
-| [Pipeline360-Backend](https://github.com/eli0504167101/Pipeline360-Backend) | Node.js REST API, Docker image and backend CI |
-| [Pipeline360-Infra](https://github.com/eli0504167101/Pipeline360-Infra) | Kubernetes manifests, Argo CD applications and GitOps deployment state |
+The project implements a full GitOps deployment model using Kubernetes, Docker, GitHub Actions and Argo CD.
 
-> [!IMPORTANT]
-> `main` represents the production state. Development changes are made on `dev` and merged through reviewed Pull Requests.
+Unlike traditional application repositories, this repository serves as the **single source of truth** for the desired infrastructure state of the entire platform.
 
----
+All Kubernetes manifests, GitOps configuration, Argo CD Applications and deployment definitions are maintained here.
 
-## Table of Contents
-
-- [Architecture](#architecture)
-- [GitOps Deployment Flow](#gitops-deployment-flow)
-- [Technology Stack](#technology-stack)
-- [Repository Structure](#repository-structure)
-- [Kubernetes Resources](#kubernetes-resources)
-- [Argo CD](#argo-cd)
-- [CI/CD Integration](#cicd-integration)
-- [Image Versioning](#image-versioning)
-- [Secrets and Configuration](#secrets-and-configuration)
-- [Local Access](#local-access)
-- [Startup and Verification](#startup-and-verification)
-- [Manifest Validation](#manifest-validation)
-- [Git Workflow](#git-workflow)
-- [Recovery and Safety](#recovery-and-safety)
-- [Related Repositories](#related-repositories)
+Whenever infrastructure changes are merged into the `main` branch, Argo CD automatically synchronizes the Kubernetes cluster with the desired state.
 
 ---
 
-## Architecture
+# Project Objectives
 
-![Pipeline360 Architecture](docs/architecture.png)
+The project demonstrates the implementation of a complete cloud-native software delivery pipeline.
 
-Pipeline360 uses a three-tier architecture:
+Main objectives:
 
-```text
-Browser
-   |
-   v
-NGINX Ingress
-   |
-   +--------------------+
-   |                    |
-   v                    v
-Frontend Service     Backend Service
-   |                    |
-   v                    v
-Frontend Pods        Backend Pods
-                         |
-                         v
-                MongoDB Replica Set
-```
+- Build containerized applications
+- Automate Continuous Integration
+- Automate Deployment Preparation
+- Implement GitOps
+- Deploy to Kubernetes
+- Manage MongoDB using StatefulSets
+- Deploy applications using Argo CD
+- Perform zero-downtime Rolling Updates
+- Maintain Infrastructure as Code
 
-The delivery architecture is GitOps based:
+---
+
+# Project Architecture
+
+Pipeline360 consists of three independent Git repositories.
 
 ```text
-Developer
-   |
-   v
-Push to application dev branch
-   |
-   v
-GitHub Actions validation and Docker build
-   |
-   v
-Docker Hub versioned image
-   |
-   v
-Automated Pull Request to Pipeline360-Infra
-   |
-   v
-Review and merge to main
-   |
-   v
-Argo CD detects the desired-state change
-   |
-   v
-Kubernetes RollingUpdate
+                    Pipeline360
+                         │
+     ┌───────────────────┼───────────────────┐
+     │                   │                   │
+     ▼                   ▼                   ▼
+Frontend Repo      Backend Repo        Infrastructure Repo
+     │                   │                   │
+     │                   │                   │
+Docker Image       Docker Image        Kubernetes
+     │                   │             Argo CD
+     └──────────────┬────┘             GitOps
+                    │
+                    ▼
+               Docker Hub
+                    │
+                    ▼
+          Pipeline360-Infra
+                    │
+                    ▼
+                 Argo CD
+                    │
+                    ▼
+               Kubernetes
 ```
 
 ---
 
-## GitOps Deployment Flow
+# Repository Responsibilities
 
-### Frontend
+## Pipeline360-Frontend
 
-```text
-Pipeline360-Frontend/dev
-        |
-        v
-Frontend CI
-        |
-        +--> Validate JavaScript and required files
-        |
-        +--> Build and push hotel-frontend:frontend-N
-        |
-        v
-Pull Request updates:
-kubernetes/frontend/deployment.yaml
-```
+Responsible for:
 
-### Backend
-
-```text
-Pipeline360-Backend/dev
-        |
-        v
-Backend CI
-        |
-        +--> Validate Node.js source and required files
-        |
-        +--> Build and push hotel-backend:backend-N
-        |
-        v
-Pull Request updates:
-kubernetes/backend/deployment.yaml
-```
-
-After the deployment Pull Request is reviewed and merged into `main`, Argo CD automatically synchronizes the corresponding application.
+- HTML
+- CSS
+- JavaScript
+- NGINX configuration
+- Docker image
+- Frontend CI
+- Deployment Preparation workflow
 
 ---
 
-## Technology Stack
+## Pipeline360-Backend
 
-| Area | Technology |
-|---|---|
-| Frontend | HTML, CSS, JavaScript, NGINX |
-| Backend | Node.js, Express, Mongoose |
-| Database | MongoDB Replica Set |
-| Database UI | Mongo Express |
-| Containerization | Docker |
-| Container Registry | Docker Hub |
-| Orchestration | Kubernetes |
-| Local Cluster | Kind |
-| Ingress | NGINX Ingress Controller |
-| CI/CD | GitHub Actions |
-| GitOps | Argo CD |
-| Development Environment | Windows, WSL2 Ubuntu, Docker Desktop, VS Code |
+Responsible for:
+
+- Node.js
+- Express REST API
+- MongoDB integration
+- Docker image
+- Backend CI
+- Deployment Preparation workflow
 
 ---
 
-## Repository Structure
+## Pipeline360-Infra
+
+Responsible for:
+
+- Kubernetes manifests
+- Namespaces
+- Deployments
+- Services
+- Ingress
+- ConfigMaps
+- Secrets templates
+- MongoDB StatefulSet
+- Argo CD Applications
+- Infrastructure validation
+- GitOps deployment
+
+This repository is the **single source of truth** for the desired Kubernetes state.
+
+---
+
+# Repository Structure
 
 ```text
 Pipeline360-Infra/
+│
+├── .github/
+│   └── workflows/
+│       └── infra-validation.yaml
+│
 ├── argocd/
 │   ├── backend-app.yaml
 │   ├── frontend-app.yaml
 │   ├── platform-app.yaml
-│   └── crds/
-│       └── applicationsets-crd-v3.4.5.yaml
-│
-├── docs/
-│   ├── architecture.png
-│   └── architecture.drawio
+│   └── application.yaml
 │
 ├── kubernetes/
 │   ├── backend/
-│   │   ├── deployment.yaml
-│   │   └── service.yaml
-│   │
 │   ├── frontend/
-│   │   ├── deployment.yaml
-│   │   └── service.yaml
-│   │
 │   ├── platform/
-│   │   ├── app-config.yaml
-│   │   ├── hotel-ingress.yaml
-│   │   ├── mongo-express.yaml
-│   │   ├── mongo-headless-service.yaml
-│   │   ├── mongo-service.yaml
-│   │   ├── mongo-statefulset.yaml
-│   │   └── namespace.yaml
-│   │
-│   ├── config/
-│   │   └── db.js
-│   │
 │   └── secrets/
-│       └── db-secrets.yaml.template
+│
+├── docs/
+│   ├── architecture.drawio
+│   └── architecture.png
 │
 └── README.md
 ```
 
 ---
 
-## Kubernetes Resources
+# Technology Stack
 
-Pipeline360 runs in the dedicated namespace:
+| Area | Technology |
+|------|------------|
+| Operating System | Ubuntu (WSL2) |
+| Container Runtime | Docker Desktop |
+| Container Platform | Kubernetes (Kind) |
+| GitOps | Argo CD |
+| CI/CD | GitHub Actions |
+| Database | MongoDB Replica Set |
+| Reverse Proxy | NGINX Ingress |
+| Container Registry | Docker Hub |
+| Source Control | GitHub |
+| Backend | Node.js + Express |
+| Frontend | HTML + CSS + JavaScript |
+
+---
+
+# Design Principles
+
+The project was designed according to the following principles:
+
+- Infrastructure as Code
+- GitOps
+- Immutable Docker Images
+- Pull Request based deployments
+- Separation of responsibilities
+- Independent repositories
+- Reproducible deployments
+- Automated validation
+- Rolling updates
+- High availability where applicable
+
+---
+
+# Kubernetes Architecture
+
+Pipeline360 is deployed on a Kubernetes cluster running on **Kind (Kubernetes in Docker)**.
+
+The cluster hosts all application workloads together with the supporting infrastructure required for GitOps deployment.
+
+Current namespace:
 
 ```text
 hotel-system
 ```
 
-### Application workloads
+All application resources are deployed inside this namespace.
 
-| Resource | Name | Desired State |
-|---|---|---:|
-| Frontend Deployment | `frontend-deployment` | 5 replicas |
-| Backend Deployment | `backend-deployment` | 5 replicas |
-| MongoDB StatefulSet | `mongo` | 3 replicas |
-| Mongo Express Deployment | `mongo-express` | 1 replica |
+---
 
-### Services
+# Infrastructure Components
 
-| Service | Port | Purpose |
-|---|---:|---|
-| `frontend-service` | 80 | Frontend access |
-| `backend-service` | 3000 | Backend API |
-| `mongo` | 27017 | Stable MongoDB service |
-| `mongo-headless` | 27017 | Replica-set pod discovery |
-| `mongo-express-service` | 8081 | Database administration UI |
+The platform consists of the following Kubernetes resources.
 
-### MongoDB persistent storage
+| Component | Purpose |
+|-----------|---------|
+| Frontend Deployment | Serves the web application |
+| Backend Deployment | Hosts the REST API |
+| MongoDB StatefulSet | Persistent database |
+| Mongo Headless Service | Replica Set communication |
+| Mongo Service | Internal MongoDB access |
+| Mongo Express | Database administration |
+| ConfigMap | Application configuration |
+| Secret Templates | Sensitive configuration templates |
+| Ingress | External HTTP routing |
 
-The MongoDB StatefulSet creates one PVC per replica:
+---
 
-```text
-mongo-storage-mongo-0
-mongo-storage-mongo-1
-mongo-storage-mongo-2
-```
+# Frontend Deployment
 
-Each claim requests:
+The frontend is deployed as a Kubernetes Deployment.
+
+Deployment:
 
 ```text
-1Gi
-ReadWriteOnce
+frontend-deployment
 ```
 
-Verify:
+Responsibilities:
 
-```bash
-kubectl get statefulset mongo -n hotel-system
-kubectl get pods -n hotel-system -l app=mongo
-kubectl get pvc -n hotel-system
-```
+- Serve the static application
+- Proxy API requests through NGINX
+- Participate in Rolling Updates
+- Support horizontal scaling
 
-Expected replica-set state:
+Current configuration:
+
+| Property | Value |
+|----------|-------|
+| Replicas | 5 |
+| Container Port | 80 |
+| Service | frontend-service |
+
+Health probes:
 
 ```text
-PRIMARY
-SECONDARY
-SECONDARY
-```
-
-Check it with:
-
-```bash
-kubectl exec -n hotel-system mongo-0 -- \
-  mongosh --quiet --eval \
-  'rs.status().members.map(member => ({
-    name: member.name,
-    state: member.stateStr,
-    health: member.health
-  }))'
+/index.html
 ```
 
 ---
 
-## Argo CD
+# Backend Deployment
 
-Argo CD runs in the dedicated namespace:
+The backend is deployed as a Kubernetes Deployment.
 
-```text
-argocd
-```
-
-Pipeline360 uses three independent Argo CD Applications:
-
-| Application | Repository Path | Responsibility |
-|---|---|---|
-| `pipeline360-frontend` | `kubernetes/frontend` | Frontend Deployment and Service |
-| `pipeline360-backend` | `kubernetes/backend` | Backend Deployment and Service |
-| `pipeline360-platform` | `kubernetes/platform` | Namespace, MongoDB, Mongo Express, ConfigMap and Ingress |
-
-All Applications monitor:
+Deployment:
 
 ```text
-Repository: Pipeline360-Infra
-Revision: main
+backend-deployment
 ```
 
-The Applications use automated synchronization:
+Responsibilities:
 
-```yaml
-syncPolicy:
-  automated:
-    prune: true
-    selfHeal: true
-  syncOptions:
-    - CreateNamespace=true
-```
+- Process REST API requests
+- Validate reservations
+- Communicate with MongoDB
+- Expose health endpoints
 
-Verify:
+Current configuration:
 
-```bash
-kubectl get applications -n argocd \
-  -o custom-columns='NAME:.metadata.name,REPO:.spec.source.repoURL,PATH:.spec.source.path,SYNC:.status.sync.status,HEALTH:.status.health.status'
-```
+| Property | Value |
+|----------|-------|
+| Replicas | 5 |
+| Container Port | 3000 |
+| Service | backend-service |
 
-Expected state:
+Health endpoints:
 
 ```text
-pipeline360-backend    Synced   Healthy
-pipeline360-frontend   Synced   Healthy
-pipeline360-platform   Synced   Healthy
-```
-
-### ApplicationSet CRD
-
-The ApplicationSet CRD required by the installed Argo CD controller is stored at:
-
-```text
-argocd/crds/applicationsets-crd-v3.4.5.yaml
-```
-
-Install it during Argo CD bootstrap with:
-
-```bash
-kubectl apply \
-  --server-side \
-  --force-conflicts \
-  -f argocd/crds/applicationsets-crd-v3.4.5.yaml
-```
-
-Verify:
-
-```bash
-kubectl get crd applicationsets.argoproj.io
-kubectl api-resources | grep -i applicationset
+GET /health
+GET /ready
 ```
 
 ---
 
-## CI/CD Integration
+# MongoDB
 
-Application delivery starts from the Frontend or Backend repository.
+Pipeline360 uses MongoDB as the primary database.
 
-Each application workflow:
+MongoDB is deployed as a Kubernetes StatefulSet rather than a Deployment.
 
-1. Runs on a push to `dev`.
-2. Validates the application.
-3. Builds a Docker image.
-4. Pushes a versioned image and `latest` to Docker Hub.
-5. Checks out `Pipeline360-Infra/main`.
-6. Updates only its own Deployment manifest.
-7. Creates a deployment branch.
-8. Opens a Pull Request to `Pipeline360-Infra/main`.
-9. Requires review and merge.
-10. Allows Argo CD to deploy the approved desired state.
-
-The Frontend workflow updates only:
+Deployment type:
 
 ```text
-kubernetes/frontend/deployment.yaml
+StatefulSet
 ```
 
-The Backend workflow updates only:
+Benefits:
+
+- Stable Pod identity
+- Persistent storage
+- Ordered startup
+- Ordered shutdown
+- Replica Set support
+
+Current replicas:
 
 ```text
-kubernetes/backend/deployment.yaml
+mongo-0
+mongo-1
+mongo-2
 ```
 
-No application workflow writes directly to `main`.
+Replica Set:
+
+```text
+rs0
+```
 
 ---
 
-## Image Versioning
+# MongoDB Headless Service
 
-Docker Hub repositories:
+The Replica Set members communicate using a Headless Service.
+
+Service:
+
+```text
+mongo-headless
+```
+
+Purpose:
+
+- Stable DNS names
+- Internal replica communication
+- Replica discovery
+
+Example DNS:
+
+```text
+mongo-0.mongo-headless.hotel-system.svc.cluster.local
+```
+
+---
+
+# MongoDB Service
+
+The backend connects to MongoDB through:
+
+```text
+mongo
+```
+
+Service type:
+
+```text
+ClusterIP
+```
+
+Purpose:
+
+- Internal database access
+- Stable service endpoint
+
+---
+
+# Mongo Express
+
+Mongo Express provides a web interface for MongoDB administration.
+
+Deployment:
+
+```text
+mongo-express
+```
+
+Responsibilities:
+
+- Browse collections
+- Inspect documents
+- Verify Replica Set data
+- Administrative access
+
+Authentication is provided through Kubernetes Secrets.
+
+---
+
+# ConfigMap
+
+Application configuration is stored inside:
+
+```text
+kubernetes/platform/app-config.yaml
+```
+
+Typical configuration includes:
+
+- MongoDB connection string
+- Environment variables
+- Application settings
+
+Using ConfigMaps separates configuration from application code.
+
+---
+
+# Secrets
+
+Sensitive configuration is never committed directly to Git.
+
+Instead, this repository contains Secret templates.
+
+Example:
+
+```text
+kubernetes/secrets/db-secrets.yaml.template
+```
+
+Sensitive values are created inside the Kubernetes cluster during deployment.
+
+Examples include:
+
+- Credentials
+- Passwords
+- Tokens
+
+---
+
+# Services
+
+The platform uses Kubernetes Services to provide stable networking.
+
+| Service | Type | Purpose |
+|---------|------|---------|
+| frontend-service | ClusterIP | Frontend access |
+| backend-service | ClusterIP | Backend REST API |
+| mongo | ClusterIP | MongoDB access |
+| mongo-headless | Headless | Replica Set communication |
+| mongo-express-service | ClusterIP | Mongo Express |
+
+Services provide stable virtual IP addresses regardless of Pod lifecycle.
+
+---
+
+# Ingress
+
+External traffic enters the cluster through an NGINX Ingress.
+
+Ingress:
+
+```text
+hotel-ingress
+```
+
+Responsibilities:
+
+- Route browser requests
+- Route API requests
+- Present a single application endpoint
+
+Routing rules:
+
+```text
+/
+        ▼
+frontend-service
+
+/api
+        ▼
+backend-service
+```
+
+Development URL:
+
+```text
+http://hotel.local:3000
+```
+
+The Windows hosts file maps:
+
+```text
+127.0.0.1 hotel.local
+```
+
+This allows the browser to access the complete application through a single hostname.
+
+---
+
+# Network Architecture
+
+The application network flow is illustrated below.
+
+```text
+Browser
+   │
+   ▼
+NGINX Ingress
+   │
+   ├──────────────► Frontend Service
+   │                     │
+   │                     ▼
+   │              Frontend Pods
+   │
+   ▼
+Backend Service
+   │
+   ▼
+Backend Pods
+   │
+   ▼
+Mongo Service
+   │
+   ▼
+Mongo Replica Set
+```
+
+The browser never communicates directly with MongoDB.
+
+All data access is performed through the Backend REST API.
+
+---
+
+# Continuous Integration and Continuous Delivery
+
+Pipeline360 implements a two-stage CI/CD architecture.
+
+The CI/CD process is intentionally divided into two independent pipelines.
+
+This separation provides:
+
+- Better maintainability
+- Clear separation of responsibilities
+- Easier troubleshooting
+- GitOps compliance
+- Infrastructure review before deployment
+
+---
+
+# CI/CD Architecture
+
+```text
+Developer
+     │
+     ▼
+Push to dev
+     │
+     ▼
+────────────────────────────────────
+Pipeline 1
+Continuous Integration
+────────────────────────────────────
+     │
+     ▼
+Validate Source Code
+     │
+     ▼
+Build Docker Image
+     │
+     ▼
+Push Image to Docker Hub
+     │
+     ▼
+────────────────────────────────────
+Pipeline 2
+Deployment Preparation
+────────────────────────────────────
+     │
+     ▼
+Update Kubernetes Manifest
+     │
+     ▼
+Create Deployment Branch
+     │
+     ▼
+Open Pull Request
+     │
+     ▼
+Code Review
+     │
+     ▼
+Merge to main
+     │
+     ▼
+────────────────────────────────────
+Argo CD
+────────────────────────────────────
+     │
+     ▼
+Synchronize Cluster
+     │
+     ▼
+Rolling Update
+```
+
+---
+
+# Pipeline 1 – Continuous Integration
+
+The first pipeline is responsible for application validation and image creation.
+
+Repositories:
+
+- Pipeline360-Frontend
+- Pipeline360-Backend
+
+Workflow:
+
+```text
+.github/workflows/ci.yaml
+```
+
+Trigger:
+
+```text
+Push → dev branch
+```
+
+Responsibilities:
+
+- Validate repository structure
+- Install dependencies
+- Execute application validation
+- Build Docker image
+- Authenticate to Docker Hub
+- Push immutable image
+- Update latest tag
+
+Generated image tags:
+
+Frontend:
+
+```text
+frontend-N
+```
+
+Backend:
+
+```text
+backend-N
+```
+
+Where **N** represents the GitHub Actions workflow run number.
+
+---
+
+# Docker Hub
+
+The project publishes Docker images automatically.
+
+Repositories:
 
 ```text
 eli0504167101/hotel-frontend
 eli0504167101/hotel-backend
 ```
 
-Frontend image tags:
+Published tags:
 
 ```text
 frontend-N
-latest
-```
-
-Backend image tags:
-
-```text
 backend-N
 latest
 ```
 
-The Kubernetes manifests use immutable versioned tags rather than `latest`.
+Only immutable image tags are deployed to Kubernetes.
 
-Check active images:
+---
 
-```bash
-kubectl get deployment \
-  frontend-deployment \
-  backend-deployment \
-  -n hotel-system \
-  -o custom-columns='DEPLOYMENT:.metadata.name,IMAGE:.spec.template.spec.containers[0].image,READY:.status.readyReplicas,DESIRED:.spec.replicas'
+# Pipeline 2 – Deployment Preparation
+
+The Deployment Preparation pipeline starts only after the corresponding CI workflow completes successfully.
+
+Repositories:
+
+- Pipeline360-Frontend
+- Pipeline360-Backend
+
+Workflow:
+
+```text
+deployment-preparation.yaml
+```
+
+Trigger:
+
+```text
+workflow_run
+```
+
+Required conditions:
+
+- Previous workflow succeeded
+- Source branch is dev
+- Source event is push
+
+Responsibilities:
+
+1. Read workflow metadata.
+
+2. Determine the Docker image tag.
+
+Example:
+
+```text
+frontend-15
+```
+
+or
+
+```text
+backend-15
+```
+
+3. Clone:
+
+```text
+Pipeline360-Infra
+```
+
+4. Update only one Deployment manifest.
+
+Frontend:
+
+```text
+kubernetes/frontend/deployment.yaml
+```
+
+Backend:
+
+```text
+kubernetes/backend/deployment.yaml
+```
+
+5. Create deployment branch.
+
+Example:
+
+```text
+deployment/frontend-123456789
+```
+
+6. Commit manifest update.
+
+7. Push deployment branch.
+
+8. Open Pull Request to:
+
+```text
+Pipeline360-Infra/main
+```
+
+The workflow never pushes directly to the Infrastructure main branch.
+
+---
+
+# Infrastructure Validation
+
+Every Infrastructure Pull Request executes:
+
+```text
+.github/workflows/infra-validation.yaml
+```
+
+Validation includes:
+
+- YAML syntax validation
+- Kubernetes manifest validation
+- Argo CD Application validation
+- kubeconform validation
+- Repository consistency checks
+
+The Pull Request cannot be merged unless validation succeeds.
+
+---
+
+# GitOps
+
+Pipeline360 follows the GitOps methodology.
+
+The desired cluster state is stored inside:
+
+```text
+Pipeline360-Infra
+```
+
+Git is the only source of truth.
+
+The Kubernetes cluster never receives manual application updates.
+
+All production deployments originate from a Git commit.
+
+Benefits:
+
+- Complete audit history
+- Version controlled infrastructure
+- Easy rollback
+- Pull Request reviews
+- Reproducible deployments
+
+---
+
+# Argo CD
+
+Argo CD continuously watches:
+
+Repository:
+
+```text
+Pipeline360-Infra
+```
+
+Branch:
+
+```text
+main
+```
+
+Applications:
+
+```text
+pipeline360-frontend
+pipeline360-backend
+pipeline360-platform
+```
+
+Whenever a manifest changes:
+
+```text
+main
+      │
+      ▼
+Repository Refresh
+      │
+      ▼
+Manifest Comparison
+      │
+      ▼
+Sync
+      │
+      ▼
+Rolling Update
+```
+
+The synchronization process is fully automatic.
+
+---
+
+# Rolling Updates
+
+Pipeline360 uses the Kubernetes RollingUpdate strategy.
+
+Deployment sequence:
+
+```text
+Old Pod
+      │
+      ▼
+Create New Pod
+      │
+      ▼
+Readiness Probe
+      │
+      ▼
+Receive Traffic
+      │
+      ▼
+Terminate Old Pod
+```
+
+Benefits:
+
+- Zero downtime
+- High availability
+- Automatic health verification
+- Safe incremental deployment
+
+---
+
+# Repository Authentication
+
+The automation communicates with GitHub using a Personal Access Token (PAT).
+
+The token is stored securely as a GitHub Actions Secret and is used to:
+
+- Clone the Infrastructure repository
+- Create deployment branches
+- Push manifest updates
+- Open Pull Requests
+
+No credentials are stored inside the source code.
+
+---
+
+# Deployment Approval Process
+
+Production deployments require Infrastructure Pull Requests.
+
+Deployment flow:
+
+```text
+Developer
+      │
+      ▼
+Push to dev
+      │
+      ▼
+CI Pipeline
+      │
+      ▼
+Deployment Preparation
+      │
+      ▼
+Infrastructure Pull Request
+      │
+      ▼
+Review
+      │
+      ▼
+Approval
+      │
+      ▼
+Merge
+      │
+      ▼
+Automatic Deployment
+```
+
+This approval process prevents accidental production deployments while preserving a fully automated GitOps workflow.
+
+
+---
+
+# Startup Guide
+
+The following procedure should be performed after restarting the development machine.
+
+---
+
+## 1. Start Docker Desktop
+
+Wait until Docker Desktop reports:
+
+```text
+Engine running
 ```
 
 ---
 
-## Secrets and Configuration
-
-### ConfigMap
-
-The Backend receives `MONGO_URL` from:
-
-```text
-ConfigMap: app-config
-Key: mongo-url
-```
-
-Verify:
+## 2. Open WSL
 
 ```bash
-kubectl get configmap app-config -n hotel-system
+wsl
 ```
 
-### Mongo Express authentication
-
-Mongo Express Basic Authentication uses:
-
-```text
-Secret: mongo-express-auth
-Keys:
-  username
-  password
-```
-
-Verify only that the Secret exists:
-
-```bash
-kubectl get secret mongo-express-auth -n hotel-system
-```
-
-> [!WARNING]
-> Never commit live passwords, Personal Access Tokens, Docker Hub tokens or decoded Kubernetes Secret values.
-
-The repository includes a template only:
-
-```text
-kubernetes/secrets/db-secrets.yaml.template
-```
-
-MongoDB internal authentication is not enabled in the current local Kind environment.
+or open your Ubuntu terminal.
 
 ---
 
-## Local Access
-
-The NGINX Ingress routes:
-
-```text
-hotel.local/       -> frontend-service:80
-hotel.local/api    -> backend-service:3000
-mongo.hotel.local/ -> mongo-express-service:8081
-```
-
-Windows hosts file:
-
-```text
-C:\Windows\System32\drivers\etc\hosts
-```
-
-Required entries:
-
-```text
-127.0.0.1 hotel.local
-127.0.0.1 mongo.hotel.local
-```
-
-Current Kind access:
-
-```text
-http://hotel.local:3000
-http://mongo.hotel.local:3000
-```
-
-Argo CD can be accessed using:
-
-```bash
-kubectl port-forward \
-  svc/argocd-server \
-  -n argocd \
-  8081:443
-```
-
-Then open:
-
-```text
-https://localhost:8081
-```
-
-Mongo Express can also be accessed using:
-
-```bash
-kubectl port-forward \
-  svc/mongo-express-service \
-  -n hotel-system \
-  8085:8081
-```
-
-Then open:
-
-```text
-http://localhost:8085
-```
-
----
-
-## Startup and Verification
-
-After restarting the computer:
-
-1. Start Docker Desktop.
-2. Wait for the Docker Engine.
-3. Open WSL.
-4. Verify the Kubernetes context.
-5. Verify the Kind node.
-6. Verify Argo CD.
-7. Verify Pipeline360 workloads.
-8. Open the application.
-
-Check the context:
-
-```bash
-kubectl config current-context
-```
-
-Expected:
-
-```text
-kind-pipeline360-cluster
-```
-
-Check the node:
+## 3. Verify the Kubernetes Cluster
 
 ```bash
 kubectl get nodes
 ```
 
-Check Argo CD:
+Expected:
+
+```text
+pipeline360-cluster-control-plane   Ready
+```
+
+---
+
+## 4. Verify Running Pods
+
+```bash
+kubectl get pods -n hotel-system
+```
+
+Expected components:
+
+```text
+frontend
+backend
+mongo-0
+mongo-1
+mongo-2
+mongo-express
+```
+
+All Pods should eventually become:
+
+```text
+READY   STATUS
+1/1     Running
+```
+
+---
+
+## 5. Verify Argo CD
 
 ```bash
 kubectl get pods -n argocd
+```
+
+Verify the applications:
+
+```bash
 kubectl get applications -n argocd
 ```
 
-Check Pipeline360:
+Expected:
+
+```text
+pipeline360-frontend
+pipeline360-backend
+pipeline360-platform
+```
+
+---
+
+## 6. Start Local Port Forwarding (if required)
+
+Frontend:
 
 ```bash
-kubectl get deployments,statefulsets -n hotel-system
+kubectl port-forward \
+service/frontend-service \
+8080:80 \
+-n hotel-system
+```
+
+Argo CD:
+
+```bash
+kubectl port-forward \
+svc/argocd-server \
+8081:443 \
+-n argocd
+```
+
+Mongo Express:
+
+```bash
+kubectl port-forward \
+service/mongo-express-service \
+8085:8081 \
+-n hotel-system
+```
+
+---
+
+# Deployment Verification
+
+Verify Frontend image:
+
+```bash
+kubectl get deployment frontend-deployment \
+-n hotel-system \
+-o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+```
+
+---
+
+Verify Backend image:
+
+```bash
+kubectl get deployment backend-deployment \
+-n hotel-system \
+-o jsonpath='{.spec.template.spec.containers[0].image}{"\n"}'
+```
+
+---
+
+Verify Argo CD:
+
+```bash
+kubectl get application \
+-n argocd
+```
+
+---
+
+Verify Rollout:
+
+```bash
+kubectl rollout status deployment/frontend-deployment \
+-n hotel-system
+```
+
+```bash
+kubectl rollout status deployment/backend-deployment \
+-n hotel-system
+```
+
+---
+
+Verify Pods:
+
+```bash
 kubectl get pods -n hotel-system
-kubectl get services -n hotel-system
+```
+
+---
+
+Verify Services:
+
+```bash
+kubectl get svc -n hotel-system
+```
+
+---
+
+Verify Ingress:
+
+```bash
 kubectl get ingress -n hotel-system
-kubectl get pvc -n hotel-system
-```
-
-Check the website:
-
-```bash
-curl -I \
-  -H "Host: hotel.local" \
-  http://127.0.0.1:3000/
-```
-
-Expected:
-
-```text
-HTTP/1.1 200 OK
-```
-
-Check the API:
-
-```bash
-curl \
-  -H "Host: hotel.local" \
-  http://127.0.0.1:3000/api/reservations/hotels
 ```
 
 ---
 
-## Manifest Validation
+# Troubleshooting
 
-Validate application manifests without changing the cluster:
+## Pods are not Ready
 
 ```bash
-kubectl apply \
-  --dry-run=client \
-  --recursive \
-  -f kubernetes/
+kubectl describe pod <pod-name> \
+-n hotel-system
 ```
 
-Validate Argo CD Applications:
+View logs:
 
 ```bash
-kubectl apply \
-  --dry-run=client \
-  -f argocd/backend-app.yaml \
-  -f argocd/frontend-app.yaml \
-  -f argocd/platform-app.yaml
-```
-
-Validate the ApplicationSet CRD with server-side dry run:
-
-```bash
-kubectl apply \
-  --server-side \
-  --force-conflicts \
-  --dry-run=server \
-  -f argocd/crds/applicationsets-crd-v3.4.5.yaml
+kubectl logs <pod-name> \
+-n hotel-system
 ```
 
 ---
 
-## Git Workflow
+## Deployment not updated
 
-All development work is performed on `dev`.
-
-Before making changes:
+Check the deployed image:
 
 ```bash
-git switch dev
-git pull --ff-only origin dev
-git status
+kubectl get deployment \
+-n hotel-system
 ```
 
-Commit only intended files:
+Verify Argo CD:
 
 ```bash
-git add <specific-files>
-git commit -m "Describe the change"
-git push origin dev
+kubectl get application \
+-n argocd
 ```
 
-Open a Pull Request:
-
-```text
-base: main
-compare: dev
-```
-
-After merging:
-
-```bash
-git fetch origin --prune
-git merge --ff-only origin/main
-git push origin dev
-```
-
-Verify synchronization:
-
-```bash
-git rev-list --left-right --count origin/main...origin/dev
-```
-
-Expected:
-
-```text
-0  0
-```
-
----
-
-## Recovery and Safety
-
-Routine deployments must be performed through Git and Argo CD.
-
-Avoid routine live changes such as:
-
-```text
-kubectl edit
-kubectl set image
-kubectl apply
-```
-
-Argo CD self-healing may revert changes that do not exist in Git.
-
-Do not run destructive commands without a verified backup and recovery plan:
-
-```text
-kubectl delete pvc
-kubectl delete namespace
-git reset --hard
-git push --force
-```
-
-A forced Argo CD refresh should be used only for troubleshooting:
+If repository cache must be refreshed:
 
 ```bash
 kubectl annotate application pipeline360-frontend \
-  -n argocd \
-  argocd.argoproj.io/refresh=hard \
-  --overwrite
+-n argocd \
+argocd.argoproj.io/refresh=hard \
+--overwrite
 ```
 
-`kubectl rollout status` monitors a rollout; it does not initiate one:
+or
 
 ```bash
-kubectl rollout status \
-  deployment/frontend-deployment \
-  -n hotel-system \
-  --timeout=180s
+kubectl annotate application pipeline360-backend \
+-n argocd \
+argocd.argoproj.io/refresh=hard \
+--overwrite
+```
+
+> **Note**
+>
+> A manual refresh should only be required for troubleshooting.
+> Under normal operation Argo CD detects merged manifest changes automatically.
+
+---
+
+## MongoDB Issues
+
+Verify StatefulSet:
+
+```bash
+kubectl get statefulset \
+-n hotel-system
+```
+
+Verify Replica Set Pods:
+
+```bash
+kubectl get pods \
+-n hotel-system \
+-l app=mongo
 ```
 
 ---
 
-## Related Repositories
+## Verify Mongo Express
 
-- [Pipeline360 Frontend](https://github.com/eli0504167101/Pipeline360-Frontend)
-- [Pipeline360 Backend](https://github.com/eli0504167101/Pipeline360-Backend)
-- [Pipeline360 Infrastructure](https://github.com/eli0504167101/Pipeline360-Infra)
+```bash
+kubectl get deployment \
+mongo-express \
+-n hotel-system
+```
 
 ---
 
-## Author
+## Verify Ingress
+
+```bash
+kubectl describe ingress hotel-ingress \
+-n hotel-system
+```
+
+---
+
+# Future Improvements
+
+Possible future enhancements include:
+
+- Helm Chart packaging
+- External Secrets Operator
+- HashiCorp Vault integration
+- Horizontal Pod Autoscaler (HPA)
+- Prometheus monitoring
+- Grafana dashboards
+- Loki centralized logging
+- GitHub Actions reusable workflows
+- Automatic semantic versioning
+- Multi-environment GitOps (Development / Staging / Production)
+- TLS with cert-manager
+- Argo CD Image Updater
+- Kubernetes Network Policies
+- GitHub OIDC authentication
+
+---
+
+# Documentation
+
+The project documentation is organized as follows.
+
+## Pipeline360-Frontend
+
+Contains:
+
+- Frontend application
+- Docker image
+- Frontend CI
+- Deployment Preparation
+
+---
+
+## Pipeline360-Backend
+
+Contains:
+
+- Backend REST API
+- MongoDB integration
+- Docker image
+- Backend CI
+- Deployment Preparation
+
+---
+
+## Pipeline360-Infra
+
+Contains:
+
+- Overall architecture
+- Kubernetes manifests
+- Argo CD Applications
+- GitOps workflow
+- Infrastructure validation
+- CI/CD architecture
+- Startup Guide
+- Troubleshooting
+- Deployment documentation
+- Architecture diagrams
+
+---
+
+# Architecture Diagram
+
+The architecture diagram is located in:
+
+```text
+docs/
+```
+
+Recommended files:
+
+```text
+architecture.drawio
+architecture.png
+```
+
+---
+
+# Author
 
 **Eli Hildesheim**
 
-DevOps Final Project — Pipeline360
+DevOps Final Project
+
+Pipeline360
+
+---
+
+# License
+
+This repository was created as a DevOps Final Project.
+
+The project demonstrates a complete cloud-native software delivery platform implementing:
+
+- Docker
+- GitHub Actions
+- Kubernetes
+- Argo CD
+- GitOps
+- MongoDB Replica Set
+- NGINX Ingress
+- Infrastructure as Code
+
+for educational purposes.
