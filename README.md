@@ -14,6 +14,22 @@ Whenever infrastructure changes are merged into the `main` branch, Argo CD autom
 
 ---
 
+## System Architecture
+
+<p alige ="center">
+  <img
+    src="docs/Pipeline360-Architecture.png"
+    alt="Pipeline360 GitOps CI/CD Architecture"
+    width="100%">
+</p>
+
+<p alige ="center">
+  <em>Pipeline360 — GitOps CI/CD and Kubernetes Architecture</em>
+</p>
+
+---
+
+
 # Project Objectives
 
 The project demonstrates the implementation of a complete cloud-native software delivery pipeline.
